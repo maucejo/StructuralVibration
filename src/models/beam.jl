@@ -1,14 +1,14 @@
 """
 Structure containing the data of a homogeneous and isotropic bending beam
 
-# Problem parameters
+# Constructor parameters
 * L : Length [m]
 * S : Cross-section area [m²]
 * I : Second moment of area [m⁴]
 * E : Young's modulus [Pa]
 * ρ : Density [kg/m³]
 
-# Model parameters
+# Fields
 * L : Length [m]
 * M : Linear mass density [kg/m]
 * D : Bending stiffness [N.m²]

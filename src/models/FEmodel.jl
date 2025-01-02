@@ -1,12 +1,27 @@
 """
-    Mesh(s, xmin, L, Nelt)
+    DiscreteModel(K, M, C)
+
+Structure containing the global stiffness, mass and damping matrices
+
+# Fields
+- K: Stiffness matrix
+- M: Mass matrix
+- C: Damping matrix
+"""
+struct DiscreteModel
+    K :: Matrix{Float64}
+    M :: Matrix{Float64}
+    C :: Matrix{Float64}
+end
+
+"""
+    Mesh(s, xmin, Nelt, bc)
 
 Construct a mesh for a beam with Nelt elements, length L and starting at xmin.
 
-# Inputs
+# Constructor parameters
 - s: Structure containing the data related to the 1D system
 - xmin: starting position of the beam
-- L: length of the beam
 - Nelt: number of elements
 - bc: Boundary conditions type
     * :CC : Clamped - Clamped
@@ -16,9 +31,15 @@ Construct a mesh for a beam with Nelt elements, length L and starting at xmin.
     * :CS : Clamped - Simply Supported (specific to beam)
     * :SF : Simply Supported - Free (specific to beam)
 
-
-# Outputs
-- mesh: mesh of the beam
+# Fields
+- xmin: Starting position of the beam
+- L: Length of the beam
+- Nodes: Nodes of the mesh
+- Elt: Elements of the mesh
+- Ndof_per_node: Number of degrees of freedom per node
+- elem_size: Size of the elements
+- constrained_dofs: Constrained degrees of freedom
+- free_dofs: Free degrees of freedom
 
 # Example
 ```julia-repl
@@ -28,14 +49,12 @@ julia> mesh = Mesh(0., 1., 10)
 @with_kw struct Mesh
     xmin :: Float64
     L :: Float64
-    Nelt :: Int64
-    Nnodes :: Int64
     Nodes :: Matrix{Float64}
     Elt :: Matrix{Int64}
     Ndof_per_node :: Int64
     elem_size :: Float64
-    constrained_dofs :: Vector{Int64}
-    free_dofs :: Vector{Int64}
+    constrained_dofs :: Vector{Int}
+    free_dofs :: Vector{Int}
 
     function Mesh(s :: OneDStructure, xmin, Nelt, bc = :CC)
         Nnodes = Nelt + 1
@@ -87,7 +106,7 @@ julia> mesh = Mesh(0., 1., 10)
         end
         free_dofs = setdiff(dofs, constrained_dofs)
 
-        new(xmin, s.L, Nelt, Nnodes, Nodes, Elt, Ndof_per_node, elem_size, constrained_dofs, free_dofs)
+        new(xmin, s.L, Nodes, Elt, Ndof_per_node, constrained_dofs, free_dofs)
     end
 end
 
@@ -99,6 +118,13 @@ Compute the global stiffness and mass matrices for a beam with a given mesh.
 # Inputs
 - s: Structure containing the data related to the 1D system
 - mesh: Mesh
+- bc: Boundary conditions type
+    * :CC : Clamped - Clamped
+    * :FF : Free - Free
+    * :CF : Clamped - Free
+    * :SS : Simply Supported - Simply Supported (specific to beam)
+    * :CS : Clamped - Simply Supported (specific to beam)
+    * :SF : Simply Supported - Free (specific to beam)
 
 # Outputs
 - `K`: global stiffness matrix
@@ -111,20 +137,20 @@ julia> mesh = Mesh(0., 1., 10)
 julia> K, M = assembly(b, mesh)
 ```
 """
-function assembly(s :: OneDStructure, mesh :: Mesh)
+function assembly(s :: OneDStructure, mesh :: Mesh, bc = :CC)
     # Compute elemental matrices
     kₑ, mₑ = element_matrix(s, mesh.elem_size)
 
-    (; Nnodes, Nelt, Ndof_per_node) = mesh
+    (; Elt, Ndof_per_node) = mesh
 
     # Assemble global matrices
-    Nddl = Nnodes*Ndof_per_node
+    Nddl = size(mesh.Nodes, 1)*Ndof_per_node
 
     K = zeros(Nddl, Nddl)
     M = zeros(Nddl, Nddl)
-    ind = zeros(eltype(Nnodes), Ndof_per_node^2)
+    ind = zeros(Int, 2Ndof_per_node)
     @inbounds @views for i = 1:Nelt
-        ind .= (Ndof_per_node*mesh.Elt[i, 2:end]' .+ repeat((0:Ndof_per_node-1), 1, Ndof_per_node) .- Ndof_per_node .+ 1)[:];
+        ind .= (Ndof_per_node*Elt[i, 2:end]' .+ repeat((0:Ndof_per_node-1), 1, Ndof_per_node) .- Ndof_per_node .+ 1)[:];
 
         K[ind, ind] += kₑ
         M[ind, ind] += mₑ
@@ -175,8 +201,8 @@ end
 
 function element_matrix(barod :: BarRod, h)
     # Constants
-    kc = 1. #barod.D/h
-    mc = 1. #barod.m*h/6.
+    kc = barod.D/h
+    mc = barod.m*h/6.
 
     # Elemental stiffness matrix
     kₑ = kc.*[1. -1.;
@@ -196,11 +222,14 @@ Select the dofs corresponding to the closest nodes to the positions X.
 
 # Inputs
 - mesh: Structure mesh
-- `X`: positions
+- `X`: Selected positions
+- `dof_type`: Type of the selected degree of freedom (only for beams)
+    * :trans: Transverse displacement
+    * :rot: Rotation
 
 # Outputs
+- `S`: Selection matrix
 - `dofs`: dofs corresponding to the closest nodes
-- `S`: selection matrix
 
 # Example
 ```julia-repl
@@ -208,15 +237,19 @@ julia> mesh = BeamMesh(0., 1., 10)
 julia> dofs, S = dofs_selection(mesh, [0.1, 0.2])
 ```
 """
-function dofs_selection(mesh :: Mesh, X)
+function dofs_selection(mesh :: Mesh, X, dof_type = :trans)
     N = length(X)
     dofs = zeros(Int, N)
     S = zeros(N, length(mesh.free_dofs))
     @inbounds for (i, Xi) in enumerate(X)
         d = @. abs(mesh.Nodes[:, 2] - Xi)
         if mesh.Ndof_per_node == 2
-            dofs[i] = 2argmin(d) - 1
-        else
+            if dof_type == :trans
+                dofs[i] = 2argmin(d) - 1
+            elseif dof_type == :rot
+                dofs[i] = 2argmin(d)
+            end
+        elseif mesh.Ndof_per_node == 1
             dofs[i] = argmin(d)
         end
 
@@ -226,5 +259,5 @@ function dofs_selection(mesh :: Mesh, X)
         end
     end
 
-    return dofs, S
+    return S, dofs
 end

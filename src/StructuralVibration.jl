@@ -6,6 +6,9 @@ using Parameters, ProgressMeter, LinearAlgebra,
 # Structs - Models
 export Plate, Bar, Rod, Beam, SDOF
 
+# Structs - FE and discrete models
+export DiscreteModel, Mesh
+
 # Structs - Excitations
 export Rectangle, Triangle, RandomExc, Hammer, SmoothRect
 
@@ -13,7 +16,8 @@ export Rectangle, Triangle, RandomExc, Hammer, SmoothRect
 export LinearTimeProblem, ModalFRF, DirectFRF
 
 # Functions
-export excitation, eigval, eigmode, modal_model, solve, frf
+export excitation, eigval, eigmode, modal_model, solve, frf,
+       assembly, Mesh, dofs_selection
 
 # Time solvers
 export CentralDiff, RK4, FoxGoodwin, LinearAcceleration,

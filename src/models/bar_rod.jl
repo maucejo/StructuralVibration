@@ -1,13 +1,13 @@
 """
 Structure containing the data of a homogeneous and isotropic longitudinal bar
 
-# Problem parameters
+# Constructor parameters
 * L: Length [m]
 * S: Cross-section area [m²]
 * E: Young's modulus [Pa]
 * ρ: Mass density [kg/m³]
 
-# Model parameters
+# Fields
 * L : Length [m]
 * m : Line mass [kg/m]
 * D : Stiffness coefficient [Pa]
@@ -28,14 +28,14 @@ end
 """
 Structure containing the data of a homogeneous and isotropic torsional bar
 
-# Problem parameters
+# Constructor parameters
 * L: Length [m]
 * I: Second-moment of area [m⁴]
 * J: Torsion constant [m⁴]
 * G: Shear modulus [Pa]
 * ρ: Mass density [kg/m³]
 
-# Model parameters
+# Fields
 * L : Length [m]
 * m : Line mass [kg/m]
 * D : Stiffness coefficient [Pa]

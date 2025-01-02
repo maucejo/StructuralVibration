@@ -1,14 +1,14 @@
 """
 Structure containing the data of a homogeneous and isotropic bending plate
 
-# Problem parameters
+# Constructor parameters
 * L : Length [m]
 * b : Width [m]
 * E : Young's modulus [Pa]
 * ρ : Density [kg/m³]
 * ν : Poisson's ratio
 
-# Model parameters
+# Fields
 * L : Length [m]
 * b : Width [m]
 * m : Surface mass [kg/m²]
