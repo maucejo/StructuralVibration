@@ -1,6 +1,3 @@
-abstract type BeamBarRod end
-abstract type BarRod <: BeamBarRod end
-
 """
 Structure containing the data of a homogeneous and isotropic longitudinal bar
 

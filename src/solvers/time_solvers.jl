@@ -38,9 +38,6 @@ struct CentralDiff end
 # Fourth-order Runge-Kutta
 struct RK4 end
 
-# Newmark-Family abstract type
-abstract type NewmarkFamily end
-
 # Fox-Goodwin
 struct FoxGoodwin <: NewmarkFamily
     αf::Float64

@@ -34,6 +34,8 @@ include("solvers/time_solvers.jl")
 include("solvers/frequency_solvers.jl")
 
 # Include files - Utils
+include("utils/abstract_types.jl")
+include("utils/calculus.jl")
 include("utils/excitation.jl")
 include("utils/noise.jl")
 

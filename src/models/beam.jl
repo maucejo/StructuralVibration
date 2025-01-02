@@ -13,7 +13,7 @@ Structure containing the data of a homogeneous and isotropic bending beam
 * M : Linear mass density [kg/m]
 * D : Bending stiffness [N.m²]
 """
-@with_kw struct Beam <: BeamBarRod
+@with_kw struct Beam <: OneDStructure
     L :: Float64
     m::Float64
     D::Float64
@@ -27,13 +27,13 @@ Structure containing the data of a homogeneous and isotropic bending beam
 end
 
 """
-    eigval(b::Beam, fₘₐₓ, bc)
+    eigval(b::Beam, fmaxs, bc)
 
 Computes the natural frequencies of a beam in bending up to fmax
 
 # Parameters
 * p: Structure containing the data related to the beam
-* fₘₐₓ: Maximum frequency for calculating the modal shapes [Hz]
+* fmax: Maximum frequency for calculating the modal shapes [Hz]
 * bc: Boundary conditions
     * :SS : Simply Supported - Simply Supported
     * :CC : Clamped - Clamped
@@ -46,11 +46,11 @@ Computes the natural frequencies of a beam in bending up to fmax
 * ωₙ: Natural frequencies calculated up to ωmax = 2π*fmax [Hz]
 * kₙ: Vector of modal wave numbers
 """
-function eigval(b::Beam, fₘₐₓ, bc = :SS)
+function eigval(b::Beam, fmax, bc = :SS)
     (; L, m, D) = b
 
     c = sqrt(D/m)
-    ωₘₐₓ = 2π*fₘₐₓ
+    ωmax = 2π*fmax
 
     ωₙ = Float64[]
     kₙ = Float64[]
@@ -58,7 +58,7 @@ function eigval(b::Beam, fₘₐₓ, bc = :SS)
         n = 1
         kᵢ = n*π/L
         ωᵢ = c*kᵢ^2
-        while ωᵢ ≤ ωₘₐₓ
+        while ωᵢ ≤ ωmax
             push!(kₙ, kᵢ)
             push!(ωₙ, ωᵢ)
             n += 1
@@ -72,7 +72,7 @@ function eigval(b::Beam, fₘₐₓ, bc = :SS)
         n = 4
         kᵢ = (2n + 1)π/2L
         ωᵢ = c*kᵢ^2
-        while ωᵢ ≤ ωₘₐₓ
+        while ωᵢ ≤ ωmax
             push!(kₙ, kᵢ)
             push!(ωₙ, ωᵢ)
             n += 1
@@ -86,7 +86,7 @@ function eigval(b::Beam, fₘₐₓ, bc = :SS)
         n = 4
         kᵢ = (4n + 1)π/4L
         ωᵢ = c*kᵢ^2
-        while ωᵢ ≤ ωₘₐₓ
+        while ωᵢ ≤ ωmax
             push!(kₙ, kᵢ)
             push!(ωₙ, ωᵢ)
             n += 1
@@ -100,7 +100,7 @@ function eigval(b::Beam, fₘₐₓ, bc = :SS)
         n = 5
         kᵢ = (2n + 1)π/2L
         ωᵢ = c*kᵢ^2
-        while ωᵢ ≤ ωₘₐₓ
+        while ωᵢ ≤ ωmax
             push!(kₙ, kᵢ)
             push!(ωₙ, ωᵢ)
             n += 1
@@ -114,7 +114,7 @@ function eigval(b::Beam, fₘₐₓ, bc = :SS)
         n = 4
         kᵢ = (4n + 1)π/4L
         ωᵢ = c*kᵢ^2
-        while ωᵢ ≤ ωₘₐₓ
+        while ωᵢ ≤ ωmax
             push!(kₙ,kᵢ)
             push!(ωₙ, ωᵢ)
             n += 1
@@ -128,7 +128,7 @@ function eigval(b::Beam, fₘₐₓ, bc = :SS)
         n = 4
         kᵢ = (2n + 1)π/2L
         ωᵢ = c*kᵢ^2
-        while ωᵢ ≤ ωₘₐₓ
+        while ωᵢ ≤ ωmax
             push!(kₙ, kᵢ)
             push!(ωₙ, ωᵢ)
             n += 1

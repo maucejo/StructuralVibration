@@ -37,11 +37,11 @@ julia> mesh = Mesh(0., 1., 10)
     constrained_dofs :: Vector{Int64}
     free_dofs :: Vector{Int64}
 
-    function Mesh(s :: BeamBarRod, xmin, L, Nelt, bc = :CC)
+    function Mesh(s :: OneDStructure, xmin, Nelt, bc = :CC)
         Nnodes = Nelt + 1
         Nodes = zeros(Nnodes, 2)
         Elt = zeros(Nelt, 3)
-        elem_size = L/Nelt
+        elem_size = s.L/Nelt
 
         for i = 1:Nnodes
             Nodes[i, 1] = i
@@ -87,7 +87,7 @@ julia> mesh = Mesh(0., 1., 10)
         end
         free_dofs = setdiff(dofs, constrained_dofs)
 
-        new(xmin, L, Nelt, Nnodes, Nodes, Elt, Ndof_per_node, elem_size, constrained_dofs, free_dofs)
+        new(xmin, s.L, Nelt, Nnodes, Nodes, Elt, Ndof_per_node, elem_size, constrained_dofs, free_dofs)
     end
 end
 
@@ -107,11 +107,11 @@ Compute the global stiffness and mass matrices for a beam with a given mesh.
 # Example
 ```julia-repl
 julia> b = Beam(1., 3e-2, 1e-2, 2.1e11, 7850.)
-julia> mesh = BeamMesh(0., 1., 10)
+julia> mesh = Mesh(0., 1., 10)
 julia> K, M = assembly(b, mesh)
 ```
 """
-function assembly(s :: BeamBarRod, mesh :: Mesh)
+function assembly(s :: OneDStructure, mesh :: Mesh)
     # Compute elemental matrices
     kₑ, mₑ = element_matrix(s, mesh.elem_size)
 
@@ -175,8 +175,8 @@ end
 
 function element_matrix(barod :: BarRod, h)
     # Constants
-    kc = barod.D/h
-    mc = barod.m*h/6.
+    kc = 1. #barod.D/h
+    mc = 1. #barod.m*h/6.
 
     # Elemental stiffness matrix
     kₑ = kc.*[1. -1.;
