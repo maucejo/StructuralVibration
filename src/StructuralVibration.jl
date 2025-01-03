@@ -13,7 +13,7 @@ export DiscreteModel, Mesh
 export Rectangle, Triangle, RandomExc, Hammer, SmoothRect
 
 # Structs - Problems
-export LinearTimeProblem, ModalFRF, DirectFRF
+export DiscreteTimeProblem, ModalFRF, DirectFRF
 
 # Functions
 export excitation, eigval, eigmode, modal_model, solve, frf,

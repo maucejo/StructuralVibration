@@ -32,7 +32,7 @@ Y = y[:]
 ϕₒ = eigmode(plate, kₙ, X, Y)
 
 # Computation of the modal coordinates
-prob = LinearTimeProblem(Kₙ, Mₙ, Cₙ, Fₙ, t)
+prob = DiscreteTimeProblem(Kₙ, Mₙ, Cₙ, Fₙ, t)
 u0 = (D₀ = zeros(Nmodes), V₀ = zeros(Nmodes))
 
 sol = solve(prob, u0)

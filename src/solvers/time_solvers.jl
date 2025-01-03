@@ -7,14 +7,14 @@ Structure containing data for the time solver
 * C: Damping matrix
 * t: Collection of calculation time steps
 """
-@with_kw struct LinearTimeProblem
+@with_kw struct DiscreteTimeProblem
     K :: Matrix{Float64}
     M :: Matrix{Float64}
     C :: Matrix{Float64}
     F :: Matrix{Float64}
     h
 
-    LinearTimeProblem(K, M, C, F, t) = new(K, M, C, F, t[2] - t[1])
+    DiscreteTimeProblem(K, M, C, F, t) = new(K, M, C, F, t[2] - t[1])
 end
 
 """
@@ -25,7 +25,7 @@ Structure containing problem solutions
 * V: Velocity matrix
 * A: Acceleration matrix
 """
-@with_kw struct TimeSolution
+@with_kw struct DiscreteTimeSolution
     D :: Matrix{Float64}
     V :: Matrix{Float64}
     A :: Matrix{Float64}
@@ -145,7 +145,7 @@ end
 # Algorithms
 
 # Central-difference
-function solve(prob::LinearTimeProblem, u0, alg::CentralDiff)
+function solve(prob::DiscreteTimeProblem, u0, alg::CentralDiff)
 
     (; K, M, C, F, h) = prob
 
@@ -182,11 +182,11 @@ function solve(prob::LinearTimeProblem, u0, alg::CentralDiff)
         A[:, n+1] = LU\rhs
     end
 
-    return TimeSolution(D, V, A)
+    return DiscreteTimeSolution(D, V, A)
 end
 
 # Fourth-order Runge-Kutta
-function solve(prob::LinearTimeProblem, u0, alg::RK4)
+function solve(prob::DiscreteTimeProblem, u0, alg::RK4)
 
     (; K, M, C, F, h) = prob
 
@@ -224,11 +224,11 @@ function solve(prob::LinearTimeProblem, u0, alg::RK4)
         A[:, n+1] = LU\(F[:, n+1] - C*V[:, n+1] - K*D[:, n+1])
     end
 
-    return TimeSolution(D, V, A)
+    return DiscreteTimeSolution(D, V, A)
 end
 
 #Newmark family
-function solve(prob::LinearTimeProblem, u0, alg::NewmarkFamily)
+function solve(prob::DiscreteTimeProblem, u0, alg::NewmarkFamily)
 
     (; K, M, C, F, h) = prob
     (; αf, αₘ, γ₀, β₀, name) = alg
@@ -281,8 +281,8 @@ function solve(prob::LinearTimeProblem, u0, alg::NewmarkFamily)
         D[:, n+1] = @. D[:, n] + h*V[:, n] + a₂*A[:, n] + a₄*A[:, n+1]
     end
 
-    return TimeSolution(D, V, A)
+    return DiscreteTimeSolution(D, V, A)
 end
 
 # Default solver
-solve(prob::LinearTimeProblem, u0) = solve(prob, u0, GeneralizedAlpha())
+solve(prob:: DiscreteTimeProblem, u0) = solve(prob, u0, GeneralizedAlpha())

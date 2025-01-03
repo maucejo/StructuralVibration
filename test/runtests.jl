@@ -146,7 +146,7 @@ end
 
     ϕₒ = eigmode(plate, kₙ, loc[1], loc[2])
 
-    prob = LinearTimeProblem(Kₙ, Mₙ, Cₙ, Fₙ, t)
+    prob = DiscreteTimeProblem(Kₙ, Mₙ, Cₙ, Fₙ, t)
     CI = (D₀ = zeros(Nmodes), V₀ = zeros(Nmodes))
 
     # Generalized-α

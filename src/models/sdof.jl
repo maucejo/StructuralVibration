@@ -12,23 +12,39 @@ Structure containing the data of a sdof system
     ξ :: Float64
 end
 
+@with_kw struct SDOFTimeSolution
+    x :: Vector{Float64}
+    xh :: Vector{Float64}
+    xp :: Vector{Float64}
+    env :: Vector{Float64}
+
+    SDOFTimeSolution(x; xh = Float64[], xp = Float64[], env = Float64[]) = new(x, xh, xp, env)
+end
+
+@with_kw struct SDOFFrequencySolution
+    x :: Vector{Complex{Float64}}
+end
+
 """
-    free_response(s::SDOF, t, x₀ = 0., v₀ = 1.)
+    solve(s::SDOF, u0::Vector{Float64}, t)
 
 Compute the free response of a single degree of freedom (SDOF) system.
 
 # Inputs
 - s: Structure containing the parameters of the SDOF system
+- u0: Initial conditions
+    - x₀: Initial displacement (default 0. m)
+    - v₀: Initial velocity (default 1. m/s)
 - t: A vector of time points at which to evaluate the response
-- x₀: Initial displacement (default is 0.0)
-- v₀: Initial velocity (default is 1.0)
 
 # Outputs
-- rep: The response of the system at the given time points
-- env: The envelope of the response
+- sol: The response of the system at the given time points
+    * x : Free response
+    * env : Free response envelope
 """
-function free_response(s::SDOF, t, x₀ = 0., v₀ = 1.)
+function solve(s::SDOF, u0::Vector{Float64}, t)
     (; ω₀, ξ) = s
+    x₀, v₀ = u0
     nt = length(t)
 
     if ξ < 1.
@@ -36,39 +52,40 @@ function free_response(s::SDOF, t, x₀ = 0., v₀ = 1.)
         A = x₀
         B = (v₀ + ξ*ω₀*x₀)/Ω₀
 
-        rep = @. exp(-ξ*ω₀*t)*(A*cos(Ω₀*t) + B*sin(Ω₀*t))
+        x = @. exp(-ξ*ω₀*t)*(A*cos(Ω₀*t) + B*sin(Ω₀*t))
         env = @. exp(-ξ*ω₀*t)*√(A^2 + B^2)
 
     elseif ξ == 1.
         A = x₀
         B = v₀ + ω₀*x₀
 
-        rep = @. (A + B*t)*exp(-ω₀*t)
+        x = @. (A + B*t)*exp(-ω₀*t)
         env = zeros(nt)
     else
         β = ω₀*√(ξ^2 - 1)
         A = x₀
         B = (v₀ + ξ*ω₀*x₀)/β
 
-        rep = @. exp(-ξ*ω₀*t)*(A*cosh(β*t) + B*sinh(β*t))
+        x = @. exp(-ξ*ω₀*t)*(A*cosh(β*t) + B*sinh(β*t))
         env = zeros(nt)
     end
 
-    return rep, env
+    return SDOFTimeSolution(x, env = env)
 end
 
 """
-    forced_response(s::SDOF, Amp::Float64, ω::Float64, t, x₀ = 0., v₀ = 0., type= :force)
+    solve(s::SDOF, u0, t, Amp, ω, type= :force)
 
-    forced_response(s::SDOF, F::Vector{Float64}, t, x₀ = 0., v₀ = 0.; type = :force)
+    solve(s::SDOF, u0, t, F; type = :force)
 
 Computes the forced response of a single degree of freedom (SDOF) system due to a harmonic external force or base motion
 
 # Inputs
 - s: Structure containing the parameters of the SDOF system
 - t: A vector of time points at which to evaluate the response
-- x₀: Initial displacement (default is 0.)
-- v₀: Initial velocity (default is 0.)
+- u0: Initial conditions
+    - x₀: Initial displacement
+    - v₀: Initial velocity
 - type: Type of excitation
     - :force: External force (default)
     - :base: Base motion
@@ -81,12 +98,14 @@ For any time dependence:
 - F: Vector of the force excitation [N] or base motion [m]
 
 # Outputs
-- x: Response of the system at the given time points
-- xh: Homogeneous solution
-- xp: Particular solution
+- sol: The response of the system at the given time points
+    * x : Total response
+    * xh : Homogeneous solution
+    * xp : Particular solution
 """
-function forced_response(s::SDOF, Amp::Float64, ω::Float64, t, x₀ = 0., v₀ = 0.; type = :force)
+function solve(s::SDOF, u0::Vector{Float64}, t, Amp::Float64, ω::Float64; type = :force)
     (; m, ω₀, ξ) = s
+    x₀, v₀ = u0
 
     if type == :force
         A₀ = Amp/m/√((ω₀^2 - ω^2)^2 + (2ξ*ω*ω₀)^2)
@@ -113,11 +132,12 @@ function forced_response(s::SDOF, Amp::Float64, ω::Float64, t, x₀ = 0., v₀ 
     xp = A₀*cos.(ω*t .- ϕ)
     x = xh .+ xp
 
-    return x, xh, xp
+    return SDOFTimeSolution(x, xh = xh, xp = xp)
 end
 
-function forced_response(s::SDOF, F::Vector{Float64}, t, x₀ = 0., v₀ = 0.; type = :force)
+function solve(s::SDOF, u0::Vector{Float64}, t, F::Vector{Float64}; type = :force)
     (; m, ω₀, ξ) = s
+
     # Time step
     Δt = t[2] - t[1]
 
@@ -133,7 +153,7 @@ function forced_response(s::SDOF, F::Vector{Float64}, t, x₀ = 0., v₀ = 0.; t
     end
 
     # Free response
-    xh = free_response(s, t, x₀, v₀)[1]
+    xh = solve(s, u0, t).x
 
     # Duhamel's integral
     if type == :base
@@ -148,7 +168,7 @@ function forced_response(s::SDOF, F::Vector{Float64}, t, x₀ = 0., v₀ = 0.; t
 
     x = xh .+ xp
 
-    return x, xh, xp
+    return SDOFTimeSolution(x, xh = xh, xp = xp)
 end
 
 """
